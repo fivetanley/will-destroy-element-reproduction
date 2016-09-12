@@ -1,7 +1,66 @@
 # Will-destroy-element-reproduction
 
-This README outlines the details of collaborating on this Ember application.
-A short introduction of this app could easily go here.
+## The basic problem
+
+This is a reproduction of an Ember issue.
+
+You used to be able to set properties in `willDestroyElement` and
+have them work before Ember 2.8. This mostly works, except when you
+have an `{{#if}}` helper in your template. On Ember 2.8.0, this
+results in an error:
+
+```
+TypeError: Cannot read property 'push' of null
+    at cleanupRenderNode (http://localhost:7357/assets/vendor.js:20703:47)
+    at destroyNode (http://localhost:7357/assets/vendor.js:57340:9)
+    at Object.visitChildren (http://localhost:7357/assets/vendor.js:56988:7)
+    at Object.clearMorph (http://localhost:7357/assets/vendor.js:57357:29)
+    at RenderResult.destroy (http://localhost:7357/assets/vendor.js:56666:32)
+    at Renderer.remove (http://localhost:7357/assets/vendor.js:25025:18)
+    at Object.destroy (http://localhost:7357/assets/vendor.js:54237:21)
+    at Class.destroy (http://localhost:7357/assets/vendor.js:53203:26)
+    at Class.superWrapper [as destroy] (http://localhost:7357/assets/vendor.js:35186:22)
+    at Object.run (http://localhost:7357/assets/vendor.js:10681:25)
+```
+
+This error mainly seems to occur in tests when components are being
+torn down.
+
+Component definition:
+
+```javscript
+import Ember from 'ember';
+
+export default Ember.Component.extend({
+  showWelcome: true,
+
+  willDestroyElement() {
+    Ember.run(() => {
+      this.set('showWelcome', false);
+    });
+    this._super(...arguments);
+  }
+});
+```
+
+Component Template:
+
+```handlebars
+{{#if showWelcome}}
+  Welcome!
+{{/if}}
+```
+
+Interestingly enough, this error does *not* occur if you have an
+`{{else}}` case, like so:
+
+```handlebars
+{{#if showWelcome}}
+  Welcome!
+{{else}}
+  Goodbye
+{{/if}}
+```
 
 ## Prerequisites
 
